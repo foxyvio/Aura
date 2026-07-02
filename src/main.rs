@@ -1,79 +1,71 @@
-mod db;
-mod models;
-mod auth;
-mod agents;
-mod skills;
-mod transactions;
-mod discovery;
-mod dashboard;
-
-use actix_web::{web, App, HttpServer, middleware};
+// सारे mod हटा दे अभी
 use actix_cors::Cors;
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use serde::{Deserialize, Serialize};
 use std::env;
+
+#[derive(Deserialize)]
+struct ChatRequest {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct ChatResponse {
+    reply: String,
+    model: String,
+    latency_ms: u128,
+    private: bool,
+}
+
+async fn health() -> HttpResponse {
+    HttpResponse::Ok().json(serde_json::json!({
+        "status": "live",
+        "service": "Aura Rust Core",
+        "version": "0.1.0-yc",
+        "rust": "1.88",
+        "modules": ["chat", "health"]
+    }))
+}
+
+async fn chat(req: web::Json<ChatRequest>) -> Result<HttpResponse> {
+    let start = std::time::Instant::now();
+
+    let reply = format!(
+        "[DEMO MODE] Aura On-Device Engine: '{}'. Privacy-first AI. Auth, Agents, Skills coming post-YC.",
+        req.message
+    );
+
+    Ok(HttpResponse::Ok().json(ChatResponse {
+        reply,
+        model: "Aura-Core-Rust-1.88".to_string(),
+        latency_ms: start.elapsed().as_millis(),
+        private: true,
+    }))
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    // Load environment variables
-    dotenv::dotenv().ok();
-    
-    let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "sqlite:aura.db".to_string());
-    
-    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let port = env::var("PORT")
-        .unwrap_or_else(|_| "8080".to_string())
-        .parse::<u16>()
-        .unwrap_or(8080);
+    let port = env::var("PORT").unwrap_or_else(|_| "10000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
 
-    // Initialize database
-    let pool = db::init_db(&database_url)
-        .await
-        .expect("Failed to initialize database");
+    println!("🚀 Aura YC Demo starting on {}", addr);
 
-    let pool_data = web::Data::new(pool);
-
-    println!("Starting Aura backend server on {}:{}", host, port);
-
-    HttpServer::new(move || {
+    HttpServer::new(|| {
         let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header();
+         .allow_any_origin()
+         .allow_any_method()
+         .allow_any_header();
 
         App::new()
-            .app_data(pool_data.clone())
-            .wrap(middleware::Logger::default())
-            .wrap(cors)
-            // Auth routes
-            .route("/api/auth/register", web::post().to(auth::register))
-            .route("/api/auth/login", web::post().to(auth::login))
-            // Agent routes
-            .route("/api/agents", web::post().to(agents::create_agent))
-            .route("/api/agents", web::get().to(agents::list_agents))
-            .route("/api/agents/{id}", web::get().to(agents::get_agent))
-            // Skill routes
-            .route("/api/skills", web::post().to(skills::create_skill))
-            .route("/api/skills", web::get().to(skills::list_skills))
-            .route("/api/skills/{id}", web::get().to(skills::get_skill))
-            .route("/api/agents/{id}/skills", web::get().to(skills::list_skills_by_agent))
-            // Transaction routes
-            .route("/api/transactions", web::post().to(transactions::create_transaction))
-            .route("/api/transactions", web::get().to(transactions::list_transactions))
-            .route("/api/transactions/{id}", web::get().to(transactions::get_transaction))
-            .route("/api/transactions/{id}/status", web::patch().to(transactions::update_transaction_status))
-            // Discovery routes
-            .route("/api/discovery/trending-skills", web::get().to(discovery::get_trending_skills))
-            .route("/api/discovery/recent-agents", web::get().to(discovery::get_recent_agents))
-            .route("/api/discovery/search-skills", web::get().to(discovery::search_skills))
-            .route("/api/agents/{id}/stats", web::get().to(discovery::get_agent_stats))
-            // Dashboard routes
-            .route("/api/dashboard", web::get().to(dashboard::get_user_dashboard))
-            .route("/api/dashboard/transactions", web::get().to(dashboard::get_user_transactions))
-            .route("/api/dashboard/skills", web::get().to(dashboard::get_user_skills))
+         .wrap(Logger::default())
+         .wrap(cors)
+         .route("/", web::get().to(health))
+         .route("/health", web::get().to(health))
+         .route("/api/chat", web::post().to(chat))
     })
-    .bind((host.as_str(), port))?
-    .run()
-    .await
+  .bind(&addr)?
+  .run()
+  .await
 }
