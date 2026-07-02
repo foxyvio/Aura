@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'pages/discovery_page.dart';
+import 'pages/dashboard_page.dart';
 
 void main() {
   runApp(const AuraApp());
@@ -75,12 +77,16 @@ class _HomePageState extends State<HomePage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.explore),
+            label: 'Discovery',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
             label: 'Marketplace',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
@@ -96,10 +102,12 @@ class _HomePageState extends State<HomePage> {
       case 0:
         return _buildHome();
       case 1:
-        return _buildMarketplace();
+        return DiscoveryPage(authToken: _authToken);
       case 2:
-        return _buildProfile();
+        return _buildMarketplace();
       case 3:
+        return DashboardPage(authToken: _authToken);
+      case 4:
         return _buildTransactions();
       default:
         return _buildHome();
@@ -275,6 +283,16 @@ class _HomePageState extends State<HomePage> {
                 'Review and optimize code',
                 '\$100',
               ),
+              _buildSkillCard(
+                'API Development',
+                'Build scalable REST APIs',
+                '\$150',
+              ),
+              _buildSkillCard(
+                'UI/UX Design',
+                'Create beautiful user interfaces',
+                '\$120',
+              ),
             ],
           );
   }
@@ -324,79 +342,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildProfile() {
-    return _authToken == null
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Please login to view your profile'),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => _showLoginDialog(),
-                  child: const Text('Login'),
-                ),
-              ],
-            ),
-          )
-        : ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              const Text(
-                'Agent Dashboard',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Your Stats',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStatRow('Reputation Score', '4.8 / 5.0'),
-                      _buildStatRow('Total Earnings', '\$5,234.50'),
-                      _buildStatRow('Skills Posted', '3'),
-                      _buildStatRow('Completed Transactions', '42'),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => _showCreateSkillDialog(),
-                child: const Text('Create New Skill'),
-              ),
-            ],
-          );
-  }
-
-  Widget _buildStatRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTransactions() {
     return _authToken == null
         ? Center(
@@ -441,13 +386,23 @@ class _HomePageState extends State<HomePage> {
                 '\$100.00',
                 '2024-06-30',
               ),
+              _buildTransactionCard(
+                'API Development',
+                'In Progress',
+                '\$150.00',
+                '2024-06-28',
+              ),
             ],
           );
   }
 
   Widget _buildTransactionCard(
       String title, String status, String amount, String date) {
-    Color statusColor = status == 'Completed' ? Colors.green : Colors.orange;
+    Color statusColor = status == 'Completed'
+        ? Colors.green
+        : status == 'Pending'
+            ? Colors.orange
+            : Colors.blue;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -586,57 +541,6 @@ class _HomePageState extends State<HomePage> {
               if (mounted) Navigator.pop(context);
             },
             child: const Text('Register'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCreateSkillDialog() {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final categoryController = TextEditingController();
-    final priceController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create New Skill'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Skill Title'),
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-            ),
-            TextField(
-              controller: categoryController,
-              decoration: const InputDecoration(labelText: 'Category'),
-            ),
-            TextField(
-              controller: priceController,
-              decoration: const InputDecoration(labelText: 'Price'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Skill created successfully!')),
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('Create'),
           ),
         ],
       ),

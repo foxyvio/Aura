@@ -4,6 +4,8 @@ mod auth;
 mod agents;
 mod skills;
 mod transactions;
+mod discovery;
+mod dashboard;
 
 use actix_web::{web, App, HttpServer, middleware};
 use actix_cors::Cors;
@@ -61,6 +63,15 @@ async fn main() -> std::io::Result<()> {
             .route("/api/transactions", web::get().to(transactions::list_transactions))
             .route("/api/transactions/{id}", web::get().to(transactions::get_transaction))
             .route("/api/transactions/{id}/status", web::patch().to(transactions::update_transaction_status))
+            // Discovery routes
+            .route("/api/discovery/trending-skills", web::get().to(discovery::get_trending_skills))
+            .route("/api/discovery/recent-agents", web::get().to(discovery::get_recent_agents))
+            .route("/api/discovery/search-skills", web::get().to(discovery::search_skills))
+            .route("/api/agents/{id}/stats", web::get().to(discovery::get_agent_stats))
+            // Dashboard routes
+            .route("/api/dashboard", web::get().to(dashboard::get_user_dashboard))
+            .route("/api/dashboard/transactions", web::get().to(dashboard::get_user_transactions))
+            .route("/api/dashboard/skills", web::get().to(dashboard::get_user_skills))
     })
     .bind((host.as_str(), port))?
     .run()
